@@ -1,0 +1,105 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>لوحة تحكم التنبيهات</title>
+  <link rel="stylesheet" href="styles.css" />
+  <script src="https://cdn.socket.io/4.7.5/socket.io.min.js" crossorigin="anonymous"></script>
+</head>
+<body>
+  <header class="topbar">
+    <div class="brand">🛡️ لوحة التحكم</div>
+    <div class="topbar-right">
+      <span id="user-name" class="muted"></span>
+      <button class="btn btn-ghost" id="btn-logout">خروج</button>
+    </div>
+  </header>
+
+  <nav class="tabs">
+    <button class="tab active" data-tab="overview">نظرة عامة</button>
+    <button class="tab" data-tab="trigger">إطلاق إنذار</button>
+    <button class="tab" data-tab="devices">الأجهزة</button>
+    <button class="tab" data-tab="history">السجل</button>
+    <button class="tab" data-tab="audit">المراجعة</button>
+  </nav>
+
+  <main class="container">
+    <!-- نظرة عامة -->
+    <section class="panel" data-panel="overview">
+      <h2>الإحصائيات</h2>
+      <div class="cards" id="stats-cards"></div>
+      <h3>الأجهزة المتصلة الآن</h3>
+      <div id="online-devices" class="grid"></div>
+    </section>
+
+    <!-- إطلاق إنذار -->
+    <section class="panel hidden" data-panel="trigger">
+      <h2>إطلاق إنذار فوري</h2>
+      <form id="trigger-form" class="form-grid">
+        <label>نوع الإنذار
+          <select name="type" required>
+            <option value="AIR_RAID">إنذار غارة جوية</option>
+            <option value="GENERAL">إنذار عام</option>
+            <option value="PARTIAL">إنذار جزئي</option>
+            <option value="ALL_CLEAR">انتهاء الإنذار</option>
+            <option value="TEST">اختبار</option>
+            <option value="CUSTOM">صوت مخصّص</option>
+          </select>
+        </label>
+        <label>المدة (ثانية)<input name="duration" type="number" value="30" min="1" max="600" /></label>
+        <label>التكرار<input name="repeat" type="number" value="1" min="1" max="10" /></label>
+        <label class="full">العنوان<input name="title" placeholder="عنوان قصير" /></label>
+        <label class="full">الرسالة<textarea name="message" rows="2"></textarea></label>
+        <label class="full">رابط الصوت (اختياري)<input name="audioUrl" type="url" /></label>
+        <label class="full">أجهزة محددة (deviceId مفصولة بفاصلة، فارغ = الجميع)
+          <input name="targetDevices" />
+        </label>
+        <div class="actions full">
+          <button type="submit" class="btn btn-danger">🚨 إطلاق الإنذار</button>
+          <button type="button" class="btn btn-warning" id="btn-stop-all">⏹ إيقاف الكل</button>
+        </div>
+      </form>
+    </section>
+
+    <!-- الأجهزة -->
+    <section class="panel hidden" data-panel="devices">
+      <h2>إدارة الأجهزة</h2>
+      <form id="device-form" class="form-inline">
+        <input name="deviceId" placeholder="معرّف الجهاز (مثال: esp32-001)" required />
+        <input name="name" placeholder="الاسم" />
+        <input name="location" placeholder="الموقع (مسجد ...)" />
+        <button class="btn btn-primary">تسجيل جهاز</button>
+      </form>
+      <div id="device-token-banner" class="banner hidden"></div>
+      <table class="table">
+        <thead>
+          <tr><th>المعرّف</th><th>الاسم</th><th>الموقع</th><th>الحالة</th><th>RSSI</th><th>آخر اتصال</th><th>الإجراءات</th></tr>
+        </thead>
+        <tbody id="devices-tbody"></tbody>
+      </table>
+    </section>
+
+    <!-- السجل -->
+    <section class="panel hidden" data-panel="history">
+      <h2>سجل التنبيهات</h2>
+      <table class="table">
+        <thead><tr><th>التاريخ</th><th>النوع</th><th>الحالة</th><th>المشغّل</th><th>الأجهزة</th></tr></thead>
+        <tbody id="alerts-tbody"></tbody>
+      </table>
+    </section>
+
+    <!-- سجل المراجعة -->
+    <section class="panel hidden" data-panel="audit">
+      <h2>سجل العمليات (Audit)</h2>
+      <table class="table">
+        <thead><tr><th>التاريخ</th><th>الفاعل</th><th>العملية</th><th>المورد</th><th>النجاح</th></tr></thead>
+        <tbody id="audit-tbody"></tbody>
+      </table>
+    </section>
+  </main>
+
+  <script src="app.js"></script>
+  <script src="components/dashboard.js"></script>
+</body>
+</html>
