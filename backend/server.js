@@ -49,15 +49,16 @@ async function bootstrap() {
 
   const app = express();
   app.set('trust proxy', 1);
-  // helmet مع CSP يسمح بـ Socket.io + Leaflet من CDN
+  // helmet مع CSP يسمح بـ Socket.io + Leaflet + Google Fonts
   app.use(helmet({
     contentSecurityPolicy: {
       directives: {
         defaultSrc: ["'self'"],
-        scriptSrc: ["'self'", 'https://cdn.socket.io', 'https://unpkg.com'],
-        styleSrc:  ["'self'", "'unsafe-inline'", 'https://unpkg.com'],
-        imgSrc:    ["'self'", 'data:', 'https://*.tile.openstreetmap.org'],
-        connectSrc:["'self'", 'ws:', 'wss:', 'https://overpass-api.de'],
+        scriptSrc:  ["'self'", 'https://cdn.socket.io', 'https://unpkg.com'],
+        styleSrc:   ["'self'", "'unsafe-inline'", 'https://unpkg.com', 'https://fonts.googleapis.com'],
+        fontSrc:    ["'self'", 'data:', 'https://fonts.gstatic.com'],
+        imgSrc:     ["'self'", 'data:', 'https://*.tile.openstreetmap.org'],
+        connectSrc: ["'self'", 'ws:', 'wss:', 'https://overpass-api.de'],
       },
     },
     crossOriginEmbedderPolicy: false,

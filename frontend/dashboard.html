@@ -3,63 +3,80 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>لوحة تحكم التنبيهات</title>
+  <title>لوحة التحكم — نظام التنبيهات المدنية</title>
   <link rel="stylesheet" href="styles.css" />
   <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" crossorigin="" />
   <script src="https://cdn.socket.io/4.7.5/socket.io.min.js" crossorigin="anonymous"></script>
 </head>
 <body>
+
+  <!-- شريط الهوية الحكومية -->
+  <div class="gov-bar">
+    <span class="flag" aria-hidden="true">🇸🇦</span>
+    <strong>المملكة العربية السعودية</strong>
+    <span class="sep">—</span>
+    <span class="desc">وزارة الداخلية · المديرية العامة للدفاع المدني</span>
+  </div>
+
+  <!-- الشريط العلوي -->
   <header class="topbar">
-    <div class="brand">🛡️ لوحة التحكم</div>
+    <div class="brand">
+      <div class="crest-sm" aria-hidden="true">🛡️</div>
+      <div>
+        نظام التنبيهات المدنية
+        <small>Civil Defense Alert System</small>
+      </div>
+    </div>
     <div class="topbar-right">
-      <span id="user-name" class="muted"></span>
-      <button class="btn btn-ghost" id="btn-logout">خروج</button>
+      <span class="user" id="user-name"></span>
+      <button class="btn btn-ghost btn-sm" id="btn-logout">تسجيل الخروج</button>
     </div>
   </header>
 
-  <nav class="tabs">
+  <!-- التبويبات -->
+  <nav class="tabs" role="tablist">
     <button class="tab active" data-tab="overview">نظرة عامة</button>
-    <button class="tab" data-tab="map">🗺️ الخريطة</button>
+    <button class="tab" data-tab="map">الخريطة</button>
     <button class="tab" data-tab="trigger">إطلاق إنذار</button>
     <button class="tab" data-tab="devices">الأجهزة</button>
     <button class="tab" data-tab="history">السجل</button>
-    <button class="tab" data-tab="audit">المراجعة</button>
+    <button class="tab" data-tab="audit">سجل المراجعة</button>
   </nav>
 
   <main class="container">
 
     <!-- نظرة عامة -->
     <section class="panel" data-panel="overview">
-      <h2>الإحصائيات</h2>
+      <h2>الإحصائيات العامة</h2>
       <div class="cards" id="stats-cards"></div>
-      <h3>الأجهزة المتصلة الآن</h3>
+      <h3>الأجهزة المتصلة حالياً</h3>
       <div id="online-devices" class="grid"></div>
     </section>
 
     <!-- الخريطة -->
-    <section class="panel hidden" data-panel="map" style="padding:0;overflow:hidden;border-radius:12px;">
+    <section class="panel hidden" data-panel="map" style="padding:0;overflow:hidden;">
       <div class="map-toolbar">
-        <span style="font-weight:bold;font-size:1rem">🗺️ خريطة المساجد — الرياض</span>
-        <div style="display:flex;gap:.5rem;flex-wrap:wrap">
-          <button class="btn btn-primary btn-sm" id="btn-add-mosque-click">+ أضف مسجد (انقر على الخريطة)</button>
-          <button class="btn btn-ghost btn-sm" id="btn-reload-map">🔄 تحديث</button>
+        <span class="title">خريطة المساجد — مدينة الرياض</span>
+        <div class="actions">
+          <button class="btn btn-primary btn-sm" id="btn-add-mosque-click">إضافة مسجد بالنقر على الخريطة</button>
+          <button class="btn btn-ghost btn-sm" id="btn-reload-map">تحديث الخريطة</button>
         </div>
       </div>
-      <div id="mosque-map" style="height:calc(100vh - 180px);width:100%;"></div>
+      <div id="mosque-map"></div>
 
       <!-- نموذج إضافة مسجد يدوي -->
-      <div id="mosque-form-panel" class="panel" style="border-radius:0;border-top:1px solid var(--border);display:none;">
-        <h3 style="margin-top:0">تسجيل مسجد في النظام</h3>
+      <div id="mosque-form-panel" class="panel" style="border-radius:0;border-top:1px solid var(--border);box-shadow:none;display:none;">
+        <h3>تسجيل مسجد في النظام</h3>
         <form id="mosque-form" class="form-grid">
           <label>اسم المسجد (عربي)<input id="mf-nameAr" required /></label>
           <label>Name (English)<input id="mf-name" /></label>
           <label>الحي<input id="mf-district" /></label>
           <label>العنوان<input id="mf-address" /></label>
-          <label>خط العرض (Lat)<input id="mf-lat" type="number" step="any" required /></label>
-          <label>خط الطول (Lng)<input id="mf-lng" type="number" step="any" required /></label>
-          <label class="full">جهاز ESP32 المرتبط (deviceId — اختياري)<input id="mf-deviceId" /></label>
+          <label>خط العرض (Latitude)<input id="mf-lat" type="number" step="any" required /></label>
+          <label>خط الطول (Longitude)<input id="mf-lng" type="number" step="any" required /></label>
+          <label class="full">معرّف جهاز ESP32 المرتبط (اختياري)<input id="mf-deviceId" placeholder="مثال: esp32-001" /></label>
           <div class="actions full">
-            <button type="submit" class="btn btn-primary">💾 حفظ</button>
+            <button type="submit" class="btn btn-primary">حفظ المسجد</button>
             <button type="button" class="btn btn-ghost" id="btn-mosque-cancel">إلغاء</button>
           </div>
         </form>
@@ -67,30 +84,31 @@
     </section>
 
     <!-- إطلاق إنذار -->
-    <section class="panel hidden" data-panel="trigger">
+    <section class="panel danger-zone hidden" data-panel="trigger">
       <h2>إطلاق إنذار فوري</h2>
+      <p class="muted" style="margin-bottom:1rem;">إطلاق التنبيه يُرسَل فوراً إلى جميع الأجهزة المُتصلة. تأكّد من اختيار النوع والمدة قبل الإطلاق.</p>
       <form id="trigger-form" class="form-grid">
         <label>نوع الإنذار
           <select name="type" required>
-            <option value="AIR_RAID">🚨 إنذار غارة جوية</option>
-            <option value="GENERAL">📢 إنذار عام</option>
-            <option value="PARTIAL">⚠️ إنذار جزئي</option>
-            <option value="ALL_CLEAR">✅ انتهاء الإنذار</option>
-            <option value="TEST">🔔 اختبار</option>
-            <option value="CUSTOM">🎵 صوت مخصّص</option>
+            <option value="AIR_RAID">إنذار غارة جوية</option>
+            <option value="GENERAL">إنذار عام</option>
+            <option value="PARTIAL">إنذار جزئي</option>
+            <option value="ALL_CLEAR">انتهاء الإنذار</option>
+            <option value="TEST">اختبار</option>
+            <option value="CUSTOM">صوت مخصّص</option>
           </select>
         </label>
         <label>المدة (ثانية)<input name="duration" type="number" value="30" min="1" max="600" /></label>
-        <label>التكرار<input name="repeat" type="number" value="1" min="1" max="10" /></label>
-        <label class="full">العنوان<input name="title" placeholder="عنوان قصير" /></label>
-        <label class="full">الرسالة<textarea name="message" rows="2"></textarea></label>
-        <label class="full">رابط الصوت (اختياري)<input name="audioUrl" type="url" /></label>
-        <label class="full">أجهزة محددة (deviceId مفصولة بفاصلة — فارغ = الجميع)
-          <input name="targetDevices" />
+        <label>عدد التكرارات<input name="repeat" type="number" value="1" min="1" max="10" /></label>
+        <label class="full">عنوان الإنذار<input name="title" placeholder="عنوان قصير" /></label>
+        <label class="full">رسالة التنبيه<textarea name="message" rows="2" placeholder="نص توضيحي يظهر في السجل"></textarea></label>
+        <label class="full">رابط الصوت (اختياري)<input name="audioUrl" type="url" placeholder="https://..." /></label>
+        <label class="full">أجهزة محددة (deviceId مفصولة بفاصلة، فارغ = الجميع)
+          <input name="targetDevices" placeholder="esp32-001, esp32-002" />
         </label>
         <div class="actions full">
-          <button type="submit" class="btn btn-danger">🚨 إطلاق الإنذار</button>
-          <button type="button" class="btn btn-warning" id="btn-stop-all">⏹ إيقاف الكل</button>
+          <button type="submit" class="btn btn-danger">إطلاق الإنذار</button>
+          <button type="button" class="btn btn-warning" id="btn-stop-all">إيقاف جميع الإنذارات</button>
         </div>
       </form>
     </section>
@@ -101,37 +119,72 @@
       <form id="device-form" class="form-inline">
         <input name="deviceId" placeholder="معرّف الجهاز (مثال: esp32-001)" required />
         <input name="name" placeholder="الاسم" />
-        <input name="location" placeholder="الموقع (مسجد ...)" />
-        <button class="btn btn-primary">تسجيل جهاز</button>
+        <input name="location" placeholder="الموقع (مسجد، حي...)" />
+        <button class="btn btn-primary">تسجيل جهاز جديد</button>
       </form>
       <div id="device-token-banner" class="banner hidden"></div>
-      <table class="table">
-        <thead>
-          <tr><th>المعرّف</th><th>الاسم</th><th>الموقع</th><th>الحالة</th><th>RSSI</th><th>آخر اتصال</th><th>الإجراءات</th></tr>
-        </thead>
-        <tbody id="devices-tbody"></tbody>
-      </table>
+      <div class="table-wrap">
+        <table class="table">
+          <thead>
+            <tr>
+              <th>المعرّف</th>
+              <th>الاسم</th>
+              <th>الموقع</th>
+              <th>الحالة</th>
+              <th>إشارة WiFi</th>
+              <th>آخر اتصال</th>
+              <th>الإجراءات</th>
+            </tr>
+          </thead>
+          <tbody id="devices-tbody"></tbody>
+        </table>
+      </div>
     </section>
 
-    <!-- السجل -->
+    <!-- سجل التنبيهات -->
     <section class="panel hidden" data-panel="history">
       <h2>سجل التنبيهات</h2>
-      <table class="table">
-        <thead><tr><th>التاريخ</th><th>النوع</th><th>الحالة</th><th>المشغّل</th><th>الأجهزة</th></tr></thead>
-        <tbody id="alerts-tbody"></tbody>
-      </table>
+      <div class="table-wrap">
+        <table class="table">
+          <thead>
+            <tr>
+              <th>التاريخ والوقت</th>
+              <th>النوع</th>
+              <th>الحالة</th>
+              <th>المُشغِّل</th>
+              <th>الأجهزة المُستجيبة</th>
+            </tr>
+          </thead>
+          <tbody id="alerts-tbody"></tbody>
+        </table>
+      </div>
     </section>
 
     <!-- سجل المراجعة -->
     <section class="panel hidden" data-panel="audit">
-      <h2>سجل العمليات (Audit)</h2>
-      <table class="table">
-        <thead><tr><th>التاريخ</th><th>الفاعل</th><th>العملية</th><th>المورد</th><th>النجاح</th></tr></thead>
-        <tbody id="audit-tbody"></tbody>
-      </table>
+      <h2>سجل عمليات النظام</h2>
+      <div class="table-wrap">
+        <table class="table">
+          <thead>
+            <tr>
+              <th>التاريخ والوقت</th>
+              <th>الفاعل</th>
+              <th>العملية</th>
+              <th>المورد</th>
+              <th>النتيجة</th>
+            </tr>
+          </thead>
+          <tbody id="audit-tbody"></tbody>
+        </table>
+      </div>
     </section>
 
   </main>
+
+  <footer class="gov-footer">
+    <div>© <strong>المملكة العربية السعودية</strong> — وزارة الداخلية · الدفاع المدني</div>
+    <div>جميع الحقوق محفوظة · نظام آمن للاستخدام الرسمي</div>
+  </footer>
 
   <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js" crossorigin=""></script>
   <script src="app.js"></script>

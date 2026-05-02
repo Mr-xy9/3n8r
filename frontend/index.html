@@ -3,27 +3,52 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>نظام التنبيهات — تسجيل الدخول</title>
+  <title>نظام التنبيهات المدنية — تسجيل الدخول</title>
   <link rel="stylesheet" href="styles.css" />
 </head>
 <body class="login-bg">
-  <main class="login-card">
-    <h1>🛡️ نظام التنبيهات المدنية</h1>
-    <p class="muted">Civil Defense Alert System</p>
-    <form id="login-form" method="post" action="javascript:void(0);" autocomplete="on">
-      <label>اسم المستخدم
-        <input id="username" name="username" required autocomplete="username" />
-      </label>
-      <label>كلمة المرور
-        <input id="password" name="password" type="password" required autocomplete="current-password" />
-      </label>
-      <button type="submit" class="btn btn-primary" id="login-btn">تسجيل الدخول</button>
-      <p class="error" id="login-error" hidden></p>
-      <p class="muted" style="text-align:center;margin-top:0.5rem">
-        المستخدم الافتراضي: <code>admin</code> / <code>admin123</code>
-      </p>
-    </form>
+
+  <!-- شريط الهوية الحكومية | Government identity bar -->
+  <div class="gov-bar">
+    <span class="flag" aria-hidden="true">🇸🇦</span>
+    <strong>المملكة العربية السعودية</strong>
+    <span class="sep">—</span>
+    <span class="desc">وزارة الداخلية · المديرية العامة للدفاع المدني</span>
+  </div>
+
+  <main class="login-wrap">
+    <section class="login-card" aria-labelledby="login-title">
+      <div class="accent" aria-hidden="true"></div>
+      <div class="body">
+
+        <div class="crest" aria-hidden="true">🛡️</div>
+
+        <h1 id="login-title">نظام التنبيهات المدنية</h1>
+        <p class="subtitle">Civil Defense Alert System</p>
+
+        <form id="login-form" method="post" action="javascript:void(0);" autocomplete="on" novalidate>
+          <label>
+            اسم المستخدم
+            <input id="username" name="username" required autocomplete="username" placeholder="أدخل اسم المستخدم" />
+          </label>
+          <label>
+            كلمة المرور
+            <input id="password" name="password" type="password" required autocomplete="current-password" placeholder="••••••••" />
+          </label>
+          <button type="submit" class="btn btn-primary" id="login-btn">تسجيل الدخول</button>
+          <p class="error" id="login-error" hidden></p>
+          <p class="help">المستخدم الافتراضي: <code>admin</code> · كلمة المرور: <code>admin123</code></p>
+        </form>
+      </div>
+    </section>
   </main>
+
+  <!-- التذييل الرسمي | Official footer -->
+  <footer class="gov-footer">
+    <div>© <strong>المملكة العربية السعودية</strong> — وزارة الداخلية · الدفاع المدني</div>
+    <div>جميع الحقوق محفوظة · نظام آمن — الدخول مخصّص للموظفين المُخوّلين</div>
+  </footer>
+
   <script src="app.js"></script>
   <script src="login.js"></script>
 </body>
