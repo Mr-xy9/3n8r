@@ -9,21 +9,28 @@
 
   const RIYADH = { lat: 24.7136, lng: 46.6753, zoom: 11 };
 
-  // أيقونات الخريطة
+  // أيقونات رسمية على الخريطة | Official map markers (SVG pin)
+  const pinSVG = (color, ring) => `
+    <svg xmlns="http://www.w3.org/2000/svg" width="28" height="36" viewBox="0 0 28 36">
+      <path d="M14 0C6.27 0 0 6.27 0 14c0 10.5 14 22 14 22s14-11.5 14-22C28 6.27 21.73 0 14 0z"
+        fill="${color}" stroke="${ring}" stroke-width="1.5"/>
+      <circle cx="14" cy="14" r="5.5" fill="#fff"/>
+    </svg>`;
+
   const iconOnline = L.divIcon({
     className: '',
-    html: '<div style="font-size:22px;line-height:1;filter:drop-shadow(0 2px 4px rgba(0,0,0,.6))">🟢</div>',
-    iconSize: [28, 28], iconAnchor: [14, 14], popupAnchor: [0, -14],
+    html: pinSVG('#006B3F', '#fff'),
+    iconSize: [28, 36], iconAnchor: [14, 36], popupAnchor: [0, -32],
   });
   const iconOffline = L.divIcon({
     className: '',
-    html: '<div style="font-size:22px;line-height:1;filter:drop-shadow(0 2px 4px rgba(0,0,0,.4))">🕌</div>',
-    iconSize: [28, 28], iconAnchor: [14, 14], popupAnchor: [0, -14],
+    html: pinSVG('#C0392B', '#fff'),
+    iconSize: [28, 36], iconAnchor: [14, 36], popupAnchor: [0, -32],
   });
   const iconOsm = L.divIcon({
     className: '',
-    html: '<div style="font-size:18px;line-height:1;opacity:.7">🕌</div>',
-    iconSize: [22, 22], iconAnchor: [11, 11], popupAnchor: [0, -11],
+    html: pinSVG('#8A93A2', '#fff'),
+    iconSize: [22, 28], iconAnchor: [11, 28], popupAnchor: [0, -24],
   });
 
   function initMap() {
@@ -92,10 +99,10 @@
         L.marker([lat, lng], { icon: iconOsm })
           .bindPopup(`
             <div class="map-popup">
-              <h4>🕌 ${name}</h4>
-              <p class="muted">من OpenStreetMap</p>
+              <h4>${name}</h4>
+              <p class="muted">مصدر البيانات: OpenStreetMap</p>
               <button class="btn btn-primary btn-sm" onclick="window.mapAddMosque(${lat},${lng},'${name.replace(/'/g, "\\'")}')">
-                + تسجيل في النظام
+                تسجيل المسجد في النظام
               </button>
             </div>`)
           .addTo(osmLayer);
@@ -108,29 +115,29 @@
   function buildPopup(mosque, device) {
     const statusBadge = device
       ? (device.online
-          ? '<span class="badge ok">متصل ✅</span>'
-          : '<span class="badge bad">غير متصل ❌</span>')
-      : '<span class="badge warn">لا يوجد جهاز</span>';
+          ? '<span class="badge ok">متصل</span>'
+          : '<span class="badge bad">غير متصل</span>')
+      : '<span class="badge warn">لا يوجد جهاز مرتبط</span>';
 
     return `
       <div class="map-popup">
-        <h4>🕌 ${mosque.nameAr || mosque.name}</h4>
+        <h4>${mosque.nameAr || mosque.name}</h4>
         ${mosque.district ? `<p class="muted">${mosque.district}</p>` : ''}
         ${mosque.address ? `<p>${mosque.address}</p>` : ''}
         <div style="margin:.5rem 0">${statusBadge}</div>
-        ${device ? `<p class="muted">جهاز: ${device.deviceId}</p>` : ''}
+        ${device ? `<p class="muted">معرّف الجهاز: ${device.deviceId}</p>` : ''}
         ${device ? `
           <div class="map-actions">
             <button class="btn btn-danger btn-sm" onclick="window.mapTriggerAlert('${device.deviceId}')">
-              🚨 إطلاق إنذار
+              إطلاق إنذار
             </button>
             <button class="btn btn-ghost btn-sm" onclick="window.mapPingDevice('${device.deviceId}')">
-              📡 Ping
+              فحص الاتصال
             </button>
           </div>
         ` : ''}
-        <button class="btn btn-ghost btn-sm" style="margin-top:.4rem;width:100%"
-          onclick="window.mapDeleteMosque('${mosque._id}')">🗑 حذف</button>
+        <button class="btn btn-ghost btn-sm" style="margin-top:.5rem;width:100%"
+          onclick="window.mapDeleteMosque('${mosque._id}')">حذف من النظام</button>
       </div>`;
   }
 
@@ -156,14 +163,14 @@
     if (!confirm(`إطلاق إنذار على جهاز ${deviceId}؟`)) return;
     try {
       await api.triggerAlert({ type: 'AIR_RAID', duration: 30, repeat: 1, targetDevices: [deviceId] });
-      alert('تم إطلاق الإنذار ✅');
+      alert('تم إطلاق الإنذار بنجاح');
     } catch (err) { alert(err.message); }
   };
 
   window.mapPingDevice = async function (deviceId) {
     try {
       const r = await api.pingDevice(deviceId);
-      alert(r.ok ? 'الجهاز متصل ✅' : 'الجهاز غير متصل ❌');
+      alert(r.ok ? 'الجهاز متصل ويستجيب' : 'الجهاز غير متصل حالياً');
     } catch (err) { alert(err.message); }
   };
 
