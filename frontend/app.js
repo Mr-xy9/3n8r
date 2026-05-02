@@ -23,13 +23,22 @@ async function request(path, options = {}) {
   const headers = Object.assign({ 'Content-Type': 'application/json' }, options.headers || {});
   const token = auth.token();
   if (token) headers.Authorization = `Bearer ${token}`;
-  const res = await fetch(API_BASE + path, { ...options, headers });
-  if (res.status === 401 && location.pathname !== '/index.html' && location.pathname !== '/') {
-    auth.clear();
-    location.href = 'index.html';
-    return;
+  let res;
+  try {
+    res = await fetch(API_BASE + path, { ...options, headers });
+  } catch (e) {
+    throw new Error('تعذّر الاتصال بالخادم');
   }
   const data = await res.json().catch(() => ({}));
+  if (res.status === 401) {
+    const onLogin = /\/(index\.html)?$/.test(location.pathname);
+    if (!onLogin) {
+      auth.clear();
+      location.href = 'index.html';
+      return;
+    }
+    throw new Error(data.error || 'بيانات الدخول غير صحيحة');
+  }
   if (!res.ok) throw new Error(data.error || `HTTP ${res.status}`);
   return data;
 }

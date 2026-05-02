@@ -16,27 +16,51 @@ const dashboardHub = require('./services/dashboardHub');
 const User = require('./models/User');
 
 async function bootstrap() {
-  await mongoose.connect(config.mongoUri);
-  console.log('[db] connected');
+  try {
+    await mongoose.connect(config.mongoUri, { serverSelectionTimeoutMS: 5000 });
+    console.log('[db] connected to', config.mongoUri);
+  } catch (err) {
+    console.error('\n❌ فشل الاتصال بـ MongoDB:', err.message);
+    console.error('   تأكد أن MongoDB يعمل على', config.mongoUri);
+    console.error('   على Windows: شغّل MongoDB من Services أو "mongod"');
+    console.error('   أو استخدم MongoDB Atlas وضع الرابط في .env\n');
+    process.exit(1);
+  }
 
-  // إنشاء مستخدم admin افتراضي إذا لم يوجد
-  const exists = await User.findOne({ role: 'admin' });
+  // إنشاء مستخدم admin افتراضي إذا لم يوجد + طباعة بيانات الدخول
+  const defaultPassword = process.env.ADMIN_DEFAULT_PASSWORD || 'admin123';
+  const exists = await User.findOne({ username: 'admin' });
   if (!exists) {
-    const passwordHash = await User.hashPassword(
-      process.env.ADMIN_DEFAULT_PASSWORD || 'admin123'
-    );
+    const passwordHash = await User.hashPassword(defaultPassword);
     await User.create({
       username: 'admin',
       passwordHash,
       role: 'admin',
       fullName: 'System Administrator',
     });
-    console.log('[db] default admin created — change password immediately');
   }
+  console.log('\n========================================');
+  console.log(' 🔐 بيانات الدخول الافتراضية');
+  console.log('----------------------------------------');
+  console.log('  username: admin');
+  console.log(`  password: ${exists ? '(لم تتغيّر)' : defaultPassword}`);
+  console.log('  لإعادة الضبط: node scripts/reset-admin.js كلمة-جديدة');
+  console.log('========================================\n');
 
   const app = express();
   app.set('trust proxy', 1);
-  app.use(helmet());
+  // helmet مع CSP يسمح بـ Socket.io من CDN
+  app.use(helmet({
+    contentSecurityPolicy: {
+      directives: {
+        defaultSrc: ["'self'"],
+        scriptSrc: ["'self'", 'https://cdn.socket.io'],
+        styleSrc: ["'self'", "'unsafe-inline'"],
+        connectSrc: ["'self'", 'ws:', 'wss:'],
+      },
+    },
+    crossOriginEmbedderPolicy: false,
+  }));
   app.use(cors({ origin: config.cors.origin, credentials: true }));
   app.use(express.json({ limit: '1mb' }));
   app.use(morgan('combined'));
