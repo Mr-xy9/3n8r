@@ -49,8 +49,18 @@ async function bootstrap() {
 
   const app = express();
   app.set('trust proxy', 1);
-  // helmet مع تخفيف CSP لتسمح بسكربت socket.io من CDN
-  app.use(helmet({ contentSecurityPolicy: false, crossOriginEmbedderPolicy: false }));
+  // helmet مع CSP يسمح بـ Socket.io من CDN
+  app.use(helmet({
+    contentSecurityPolicy: {
+      directives: {
+        defaultSrc: ["'self'"],
+        scriptSrc: ["'self'", 'https://cdn.socket.io'],
+        styleSrc: ["'self'", "'unsafe-inline'"],
+        connectSrc: ["'self'", 'ws:', 'wss:'],
+      },
+    },
+    crossOriginEmbedderPolicy: false,
+  }));
   app.use(cors({ origin: config.cors.origin, credentials: true }));
   app.use(express.json({ limit: '1mb' }));
   app.use(morgan('combined'));
