@@ -10,30 +10,21 @@
   <main class="login-card">
     <h1>🛡️ نظام التنبيهات المدنية</h1>
     <p class="muted">Civil Defense Alert System</p>
-    <form id="login-form">
-      <label>اسم المستخدم<input name="username" required autocomplete="username" /></label>
-      <label>كلمة المرور<input name="password" type="password" required autocomplete="current-password" /></label>
-      <button type="submit" class="btn btn-primary">تسجيل الدخول</button>
+    <form id="login-form" method="post" action="javascript:void(0);" autocomplete="on">
+      <label>اسم المستخدم
+        <input id="username" name="username" required autocomplete="username" />
+      </label>
+      <label>كلمة المرور
+        <input id="password" name="password" type="password" required autocomplete="current-password" />
+      </label>
+      <button type="submit" class="btn btn-primary" id="login-btn">تسجيل الدخول</button>
       <p class="error" id="login-error" hidden></p>
+      <p class="muted" style="text-align:center;margin-top:0.5rem">
+        المستخدم الافتراضي: <code>admin</code> / <code>admin123</code>
+      </p>
     </form>
   </main>
   <script src="app.js"></script>
-  <script>
-    document.getElementById('login-form').addEventListener('submit', async (e) => {
-      e.preventDefault();
-      const fd = new FormData(e.target);
-      const errEl = document.getElementById('login-error');
-      errEl.hidden = true;
-      try {
-        const res = await api.login(fd.get('username'), fd.get('password'));
-        auth.save(res);
-        location.href = 'dashboard.html';
-      } catch (err) {
-        errEl.textContent = err.message || 'فشل تسجيل الدخول';
-        errEl.hidden = false;
-      }
-    });
-    if (auth.token()) location.href = 'dashboard.html';
-  </script>
+  <script src="login.js"></script>
 </body>
 </html>
