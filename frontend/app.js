@@ -64,4 +64,13 @@ const api = {
   pingDevice(id) { return request(`/devices/${id}/ping`, { method: 'POST' }); },
   resetDevice(id) { return request(`/devices/${id}/reset`, { method: 'POST' }); },
   audit(limit = 100) { return request(`/audit?limit=${limit}`); },
+  // Mosques
+  listMosques() { return request('/mosques'); },
+  createMosque(payload) {
+    return request('/mosques', { method: 'POST', body: JSON.stringify(payload) });
+  },
+  updateMosque(id, payload) {
+    return request(`/mosques/${id}`, { method: 'PUT', body: JSON.stringify(payload) });
+  },
+  deleteMosque(id) { return request(`/mosques/${id}`, { method: 'DELETE' }); },
 };
