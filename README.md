@@ -20,8 +20,7 @@ docs/       التوثيق المعماري
 
 ### 1) الخادم
 ```bash
-cd backend
-cp .env.example .env   # عدّل القيم
+cd backend هنا خذ المسار حق ملف الباك اند 
 npm install
 npm start
 ```
