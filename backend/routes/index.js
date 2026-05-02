@@ -5,6 +5,7 @@ const { requireAuth, requireRole } = require('../middleware/auth');
 const auth = require('../controllers/authController');
 const devices = require('../controllers/deviceController');
 const alerts = require('../controllers/alertController');
+const mosques = require('../controllers/mosqueController');
 const AuditLog = require('../models/AuditLog');
 
 const router = express.Router();
@@ -53,6 +54,12 @@ router.get('/audit', requireAuth, requireRole('admin'), async (req, res, next) =
     next(err);
   }
 });
+
+// Mosques
+router.get('/mosques', requireAuth, mosques.list);
+router.post('/mosques', requireAuth, requireRole('admin', 'operator'), mosques.create);
+router.put('/mosques/:id', requireAuth, requireRole('admin', 'operator'), mosques.update);
+router.delete('/mosques/:id', requireAuth, requireRole('admin'), mosques.remove);
 
 // Government API integration webhook (incoming)
 // ربط مع الأنظمة الحكومية: تستقبل تنبيه موقّع وتطلقه على الأجهزة.

@@ -22,17 +22,53 @@
       else if (target === 'history') loadAlerts();
       else if (target === 'audit') loadAudit();
       else if (target === 'overview') loadOverview();
+      else if (target === 'map') {
+        // تهيئة الخريطة عند فتح التبويب (تحتاج العنصر ظاهراً في DOM)
+        setTimeout(() => window.mapModule && window.mapModule.initMap(), 100);
+      }
     });
   });
 
-  // اتصال Socket.io للوحة
+  // اتصال Socket.io للوحة — نشاركه مع map.js
   const socket = io('/dashboard', { auth: { token: auth.token() } });
+  window._dashSocket = socket;
   socket.on('device:status', ({ deviceId, online }) => {
     const row = document.querySelector(`[data-device-row="${deviceId}"] .status`);
     if (row) row.innerHTML = online
       ? '<span class="badge ok">متصل</span>'
       : '<span class="badge bad">غير متصل</span>';
     loadOverview();
+  });
+
+  // ==== أزرار الخريطة ====
+  document.getElementById('btn-add-mosque-click')?.addEventListener('click', () => {
+    window.mapModule?.enableAddByClick();
+  });
+  document.getElementById('btn-reload-map')?.addEventListener('click', () => {
+    window.mapModule?.loadRegisteredMosques();
+  });
+
+  // نموذج إضافة مسجد
+  document.getElementById('mosque-form')?.addEventListener('submit', async (e) => {
+    e.preventDefault();
+    const payload = {
+      nameAr: document.getElementById('mf-nameAr').value,
+      name: document.getElementById('mf-name').value || document.getElementById('mf-nameAr').value,
+      district: document.getElementById('mf-district').value,
+      address: document.getElementById('mf-address').value,
+      lat: parseFloat(document.getElementById('mf-lat').value),
+      lng: parseFloat(document.getElementById('mf-lng').value),
+      deviceId: document.getElementById('mf-deviceId').value || null,
+    };
+    try {
+      await api.createMosque(payload);
+      document.getElementById('mosque-form-panel').style.display = 'none';
+      e.target.reset();
+      window.mapModule?.loadRegisteredMosques();
+    } catch (err) { alert(err.message); }
+  });
+  document.getElementById('btn-mosque-cancel')?.addEventListener('click', () => {
+    document.getElementById('mosque-form-panel').style.display = 'none';
   });
 
   // ==== نظرة عامة ====
