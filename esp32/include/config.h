@@ -32,19 +32,14 @@
 
 // ====== منافذ GPIO | GPIO Pins ======
 //
-// مكبر الصوت 12V (Horn Speaker)
-// يُتحكّم فيه عبر Relay Module 5V:
-//   ESP32 GPIO 27 → IN (مدخل الرّيلي)
-//   Relay COM ← + مصدر 12V
-//   Relay NO  → + المكبّر (Horn)
-//   المكبّر - → GND مصدر 12V
+// Piezo Buzzer (Passive) — يُتحكّم به مباشرة من ESP32:
+//   ESP32 GPIO 25 → Buzzer (+)
+//   ESP32 GND     → Buzzer (-)
 //
-#define PIN_RELAY        27   // تحكم بالرّيلي → Horn Speaker 12V
+// لا حاجة لـ Relay ولا مصدر 12V — الـ Buzzer يشتغل على 3.3V مباشرة
+//
+#define PIN_BUZZER       25   // طرف موجب البيزو
 #define PIN_STATUS_LED   2    // مؤشر LED داخلي
-//
-// (اختياري) DAC للنغمات الرقمية المضافة مستقبلاً
-#define PIN_DAC          25
-#define PIN_AMP_ENABLE   26
 
 // التوقيتات | Timings (ms)
 #define HEARTBEAT_INTERVAL_MS  10000
