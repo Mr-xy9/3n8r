@@ -3,15 +3,15 @@
 
 // شبكة الواي-فاي | WiFi (override via build_flags)
 #ifndef WIFI_SSID
-#define WIFI_SSID       "your-ssid"
+#define WIFI_SSID       "Tuwaiq's employees"
 #endif
 #ifndef WIFI_PASSWORD
-#define WIFI_PASSWORD   "your-password"
+#define WIFI_PASSWORD   "Bootcamp@001"
 #endif
 
 // عنوان الخادم | Server endpoint
 #ifndef SERVER_HOST
-#define SERVER_HOST     "192.168.1.10"
+#define SERVER_HOST     "10.20.40.135"
 #endif
 #ifndef SERVER_PORT
 #define SERVER_PORT     3000
