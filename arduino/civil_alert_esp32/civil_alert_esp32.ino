@@ -257,8 +257,24 @@ void setup() {
 
   sound.begin();
 
-  // اتصال WiFi
+  // مسح الشبكات المتاحة
   WiFi.mode(WIFI_STA);
+  WiFi.disconnect();
+  delay(100);
+  Serial.println("\n[wifi] scanning networks...");
+  int n = WiFi.scanNetworks();
+  if (n == 0) {
+    Serial.println("[wifi] no networks found!");
+  } else {
+    Serial.printf("[wifi] found %d networks:\n", n);
+    for (int i = 0; i < n; i++) {
+      Serial.printf("  %d: \"%s\" (%d dBm) %s\n", i + 1,
+        WiFi.SSID(i).c_str(), WiFi.RSSI(i),
+        WiFi.encryptionType(i) == WIFI_AUTH_OPEN ? "OPEN" : "SECURED");
+    }
+  }
+  Serial.printf("[wifi] connecting to: \"%s\"\n", WIFI_SSID);
+
   WiFi.setAutoReconnect(true);
   WiFi.begin(WIFI_SSID, WIFI_PASSWORD);
   Serial.print("[wifi] connecting");
