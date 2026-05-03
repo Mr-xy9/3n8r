@@ -27,7 +27,7 @@
 #define SERVER_PORT     3000
 
 #define DEVICE_ID       "esp32-001"
-#define DEVICE_TOKEN    "replace-with-real-token"
+#define DEVICE_TOKEN    "c5b7bedbe3015d44b9203858f2623681f83fafb08a661748"
 
 // ============================================
 //   📍 GPIO Pins
