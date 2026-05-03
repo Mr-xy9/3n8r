@@ -20,10 +20,10 @@
 //   ⚙️ غيّر هذه الإعدادات حسب شبكتك
 // ============================================
 
-#define WIFI_SSID       "Tuwaiq's employees"
-#define WIFI_PASSWORD   "Bootcamp@001"
+#define WIFI_SSID       "iPhone"
+#define WIFI_PASSWORD   "i1i2i3i4"
 
-#define SERVER_HOST     "10.20.40.135"
+#define SERVER_HOST     "172.20.10.2"
 #define SERVER_PORT     3000
 
 #define DEVICE_ID       "esp32-001"
