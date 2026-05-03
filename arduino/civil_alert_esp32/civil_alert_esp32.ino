@@ -1,322 +1,228 @@
-// نظام التنبيهات المدنية - ESP32 Civil Alert System
-// Arduino IDE compatible version
-//
-// المكتبات المطلوبة (Library Manager → Search → Install):
-//   1. ArduinoJson by Benoit Blanchon
-//   2. WebSockets by Markus Sattler (links2004)
-//
-// التوصيل:
-//   Piezo Buzzer (+) → GPIO 25
-//   Piezo Buzzer (-) → GND
-//
-// قبل التحميل: غيّر الإعدادات في القسم التالي ↓
+/*
+ * ================================================
+ *   نظام التنبيهات المدنية — ESP32
+ *   Civil Defense Alert System
+ * ================================================
+ *
+ * المكتبات المطلوبة (Tools → Manage Libraries):
+ *   1. ArduinoJson   by Benoit Blanchon
+ *   2. WebSockets    by Markus Sattler
+ *
+ * التوصيل:
+ *   Piezo (+) ──► GPIO 25
+ *   Piezo (−) ──► GND
+ * ================================================
+ */
 
-#include <Arduino.h>
 #include <WiFi.h>
 #include <ArduinoJson.h>
 #include <SocketIOclient.h>
 
-// ============================================
-//   ⚙️ غيّر هذه الإعدادات حسب شبكتك
-// ============================================
+// ================================================
+//  ⚙️  الإعدادات — عدّل هنا فقط
+// ================================================
 
-#define WIFI_SSID       "iPhone"
-#define WIFI_PASSWORD   "i1i2i3i4"
+const char* WIFI_SSID     = "iPhone";
+const char* WIFI_PASSWORD = "i1i2i3i4";
+const char* SERVER_HOST   = "172.20.10.2";
+const int   SERVER_PORT   = 3000;
+const char* DEVICE_ID     = "esp32-001";
+const char* DEVICE_TOKEN  = "c5b7bedbe3015d44b9203858f2623681f83fafb08a661748";
 
-#define SERVER_HOST     "172.20.10.2"
-#define SERVER_PORT     3000
+// ================================================
+//  📍 الأطراف
+// ================================================
+#define PIN_BUZZER     25
+#define PIN_LED        2
 
-#define DEVICE_ID       "esp32-001"
-#define DEVICE_TOKEN    "c5b7bedbe3015d44b9203858f2623681f83fafb08a661748"
-
-// ============================================
-//   📍 GPIO Pins
-// ============================================
-#define PIN_BUZZER       25
-#define PIN_STATUS_LED   2
-
-// ============================================
-//   ⏱️ التوقيتات
-// ============================================
-#define HEARTBEAT_INTERVAL_MS  10000
-#define RECONNECT_DELAY_MS     5000
-#define FIRMWARE_VERSION       "1.1.0"
-
-// ============================================
-//   🎵 أنماط التنبيهات
-// ============================================
-enum AlertPattern {
-  ALERT_AIR_RAID,
-  ALERT_GENERAL,
-  ALERT_PARTIAL,
-  ALERT_ALL_CLEAR,
-  ALERT_TEST,
-};
-
-// ============================================
-//   🔊 SoundController
-// ============================================
-class SoundController {
-public:
-  void begin() {
-    pinMode(PIN_BUZZER, OUTPUT);
-    digitalWrite(PIN_BUZZER, LOW);
-    pinMode(PIN_STATUS_LED, OUTPUT);
-    digitalWrite(PIN_STATUS_LED, LOW);
-    Serial.printf("[snd] Piezo Buzzer ready on GPIO %d\n", PIN_BUZZER);
-  }
-
-  void start(AlertPattern p, uint16_t durationSec, uint8_t repeat) {
-    pattern_   = p;
-    totalMs_   = (uint32_t)durationSec * 1000UL;
-    repeats_   = repeat;
-    startedAt_ = millis();
-    playing_   = true;
-    tickPhase_ = 0;
-    nextTick_  = millis();
-    currentFreq_ = 0;
-    digitalWrite(PIN_STATUS_LED, HIGH);
-    Serial.printf("[snd] start pattern=%d dur=%us repeat=%u\n", p, durationSec, repeat);
-  }
-
-  void stop() {
-    playing_ = false;
-    buzzerOff_();
-    Serial.println("[snd] stopped");
-  }
-
-  bool isPlaying() const { return playing_; }
-
-  void loop() {
-    if (!playing_) return;
-    uint32_t elapsed = millis() - startedAt_;
-    if (elapsed >= totalMs_) {
-      if (--repeats_ > 0) {
-        startedAt_ = millis();
-        tickPhase_ = 0;
-        nextTick_  = millis();
-      } else {
-        stop();
-        return;
-      }
-    }
-    applyPattern_();
-  }
-
-  static AlertPattern fromString(const String& s) {
-    if (s == "AIR_RAID")  return ALERT_AIR_RAID;
-    if (s == "GENERAL")   return ALERT_GENERAL;
-    if (s == "PARTIAL")   return ALERT_PARTIAL;
-    if (s == "ALL_CLEAR") return ALERT_ALL_CLEAR;
-    return ALERT_TEST;
-  }
-
-private:
-  AlertPattern pattern_   = ALERT_TEST;
-  uint32_t     totalMs_   = 0;
-  uint32_t     startedAt_ = 0;
-  uint32_t     nextTick_  = 0;
-  uint32_t     currentFreq_ = 0;
-  uint8_t      repeats_   = 0;
-  uint8_t      tickPhase_ = 0;
-  bool         playing_   = false;
-
-  void buzzerOn_(uint32_t freq) {
-    if (currentFreq_ != freq) {
-      tone(PIN_BUZZER, freq);
-      currentFreq_ = freq;
-    }
-  }
-
-  void buzzerOff_() {
-    noTone(PIN_BUZZER);
-    digitalWrite(PIN_BUZZER, LOW);
-    digitalWrite(PIN_STATUS_LED, LOW);
-    currentFreq_ = 0;
-  }
-
-  void applyPattern_() {
-    if (millis() < nextTick_) return;
-    switch (pattern_) {
-      case ALERT_AIR_RAID:
-        if (tickPhase_ == 0) { buzzerOn_(800);  nextTick_ = millis() + 400; tickPhase_ = 1; }
-        else                  { buzzerOn_(1200); nextTick_ = millis() + 400; tickPhase_ = 0; }
-        break;
-      case ALERT_GENERAL:
-        buzzerOn_(1000);
-        nextTick_ = millis() + 500;
-        break;
-      case ALERT_PARTIAL:
-        if (tickPhase_ == 0) { buzzerOn_(1000); nextTick_ = millis() + 1000; tickPhase_ = 1; }
-        else                  { buzzerOff_();   nextTick_ = millis() + 2000; tickPhase_ = 0; }
-        break;
-      case ALERT_ALL_CLEAR:
-        if (tickPhase_ == 0) { buzzerOn_(600);  nextTick_ = millis() + 3000; tickPhase_ = 1; }
-        else                  { buzzerOff_();   nextTick_ = millis() + 1000; tickPhase_ = 0; }
-        break;
-      case ALERT_TEST:
-      default:
-        if (tickPhase_ == 0) { buzzerOn_(1500); nextTick_ = millis() + 300;  tickPhase_ = 1; }
-        else                  { buzzerOff_();   nextTick_ = millis() + 700;  tickPhase_ = 0; }
-        break;
-    }
-  }
-};
-
-// ============================================
-//   🌐 المتغيرات العامة
-// ============================================
+// ================================================
+//  المتغيرات
+// ================================================
 SocketIOclient socketIO;
-SoundController sound;
-uint32_t lastHeartbeat = 0;
+bool wsConnected = false;
 
-// ============================================
-//   📤 إرسال JSON للسيرفر
-// ============================================
-void sendJson(const char* event, JsonDocument& doc) {
-  String data;
-  serializeJson(doc, data);
-  String payload = "[\"" + String(event) + "\"," + data + "]";
-  socketIO.sendEVENT(payload);
-  Serial.println("[ws] sent: " + payload);
+// أنماط الإنذار
+struct Alert {
+  bool    active    = false;
+  uint8_t phase     = 0;
+  uint32_t nextTick = 0;
+  uint32_t endsAt   = 0;
+  uint8_t  repeat   = 0;
+  uint32_t duration = 0;
+  String   type     = "";
+} alert;
+
+// ================================================
+//  دوال الصوت
+// ================================================
+void buzzerOn(uint32_t freq)  { tone(PIN_BUZZER, freq); }
+void buzzerOff()              { noTone(PIN_BUZZER); digitalWrite(PIN_BUZZER, LOW); }
+
+void alertLoop() {
+  if (!alert.active) return;
+  if (millis() > alert.endsAt) {
+    if (alert.repeat > 1) {
+      alert.repeat--;
+      alert.endsAt = millis() + alert.duration;
+      alert.phase  = 0;
+    } else {
+      alert.active = false;
+      buzzerOff();
+      digitalWrite(PIN_LED, LOW);
+      Serial.println("[snd] done");
+      return;
+    }
+  }
+  if (millis() < alert.nextTick) return;
+
+  if (alert.type == "AIR_RAID") {
+    if (alert.phase == 0) { buzzerOn(800);  alert.nextTick = millis()+400; alert.phase=1; }
+    else                  { buzzerOn(1200); alert.nextTick = millis()+400; alert.phase=0; }
+  } else if (alert.type == "GENERAL") {
+    buzzerOn(1000); alert.nextTick = millis()+500;
+  } else if (alert.type == "PARTIAL") {
+    if (alert.phase==0) { buzzerOn(1000); alert.nextTick=millis()+1000; alert.phase=1; }
+    else                { buzzerOff();    alert.nextTick=millis()+2000; alert.phase=0; }
+  } else if (alert.type == "ALL_CLEAR") {
+    if (alert.phase==0) { buzzerOn(600); alert.nextTick=millis()+3000; alert.phase=1; }
+    else                { buzzerOff();   alert.nextTick=millis()+1000; alert.phase=0; }
+  } else { // TEST
+    if (alert.phase==0) { buzzerOn(1500); alert.nextTick=millis()+300; alert.phase=1; }
+    else                { buzzerOff();    alert.nextTick=millis()+700; alert.phase=0; }
+  }
 }
 
-// ============================================
-//   📥 استقبال أحداث Socket.io
-// ============================================
-void onSocketEvent(socketIOmessageType_t type, uint8_t* payload, size_t length) {
+// ================================================
+//  Socket.io
+// ================================================
+void sendEvent(const char* event, JsonDocument& doc) {
+  String data; serializeJson(doc, data);
+  String msg = "[\"" + String(event) + "\"," + data + "]";
+  socketIO.sendEVENT(msg);
+}
+
+void onSocket(socketIOmessageType_t type, uint8_t* payload, size_t length) {
   switch (type) {
-    case sIOtype_CONNECT: {
-      Serial.println("[ws] connected");
+
+    case sIOtype_CONNECT:
+      wsConnected = true;
+      Serial.println("[ws] ✅ connected");
+      digitalWrite(PIN_LED, HIGH);
       socketIO.send(sIOtype_CONNECT, "/devices");
-      JsonDocument hello;
-      hello["type"]     = "REGISTER";
-      hello["deviceId"] = DEVICE_ID;
-      hello["fw"]       = FIRMWARE_VERSION;
-      sendJson("message", hello);
+      { JsonDocument h; h["type"]="REGISTER"; h["deviceId"]=DEVICE_ID; h["fw"]="1.1.0"; sendEvent("message",h); }
       break;
-    }
+
+    case sIOtype_DISCONNECT:
+      wsConnected = false;
+      Serial.println("[ws] ❌ disconnected");
+      digitalWrite(PIN_LED, LOW);
+      break;
 
     case sIOtype_EVENT: {
       String msg = String((char*)payload, length);
-      Serial.println("[ws] event: " + msg);
+      int c = msg.indexOf(','); if (c<0) break;
+      String body = msg.substring(c+1);
+      if (body.endsWith("]")) body=body.substring(0,body.length()-1);
+      JsonDocument doc; if (deserializeJson(doc,body)) break;
+      const char* t = doc["type"]|"";
 
-      int comma = msg.indexOf(',');
-      if (comma < 0) break;
-      String jsonPart = msg.substring(comma + 1);
-      jsonPart.trim();
-      if (jsonPart.endsWith("]")) jsonPart = jsonPart.substring(0, jsonPart.length() - 1);
-
-      JsonDocument doc;
-      if (deserializeJson(doc, jsonPart)) break;
-      const char* t = doc["type"] | "";
-
-      if (strcmp(t, "ALERT_START") == 0) {
-        String alertType = String((const char*)(doc["alertType"] | "TEST"));
-        uint16_t dur = doc["duration"] | 30;
-        uint8_t  rep = doc["repeat"]   | 1;
-        sound.start(SoundController::fromString(alertType), dur, rep);
-        JsonDocument ack;
-        ack["alertId"] = (const char*)(doc["alertId"] | "");
-        ack["status"]  = "playing";
-        sendJson("ack", ack);
-      } else if (strcmp(t, "ALERT_STOP") == 0) {
-        sound.stop();
-        JsonDocument ack;
-        ack["alertId"] = (const char*)(doc["alertId"] | "");
-        ack["status"]  = "stopped";
-        sendJson("ack", ack);
-      } else if (strcmp(t, "PING") == 0) {
-        JsonDocument pong;
-        pong["type"]     = "PONG";
-        pong["deviceId"] = DEVICE_ID;
-        sendJson("message", pong);
-      } else if (strcmp(t, "RESET") == 0) {
-        delay(300);
-        ESP.restart();
+      if (strcmp(t,"ALERT_START")==0) {
+        alert.active   = true;
+        alert.type     = String((const char*)(doc["alertType"]|"TEST"));
+        alert.duration = (uint32_t)(doc["duration"]|30) * 1000UL;
+        alert.repeat   = doc["repeat"]|1;
+        alert.endsAt   = millis() + alert.duration;
+        alert.phase    = 0;
+        alert.nextTick = millis();
+        digitalWrite(PIN_LED, HIGH);
+        Serial.printf("[snd] ▶ %s\n", alert.type.c_str());
+        JsonDocument ack; ack["alertId"]=doc["alertId"]|""; ack["status"]="playing"; sendEvent("ack",ack);
       }
+      else if (strcmp(t,"ALERT_STOP")==0) {
+        alert.active=false; buzzerOff(); digitalWrite(PIN_LED,LOW);
+        JsonDocument ack; ack["status"]="stopped"; sendEvent("ack",ack);
+      }
+      else if (strcmp(t,"PING")==0) {
+        JsonDocument p; p["type"]="PONG"; p["deviceId"]=DEVICE_ID; sendEvent("message",p);
+      }
+      else if (strcmp(t,"RESET")==0) { delay(300); ESP.restart(); }
       break;
     }
-
-    case sIOtype_DISCONNECT:
-      Serial.println("[ws] disconnected");
-      break;
-
-    default:
-      break;
+    default: break;
   }
 }
 
-// ============================================
-//   🚀 Setup
-// ============================================
-void setup() {
-  Serial.begin(115200);
-  delay(200);
-  Serial.printf("\n[boot] %s fw=%s\n", DEVICE_ID, FIRMWARE_VERSION);
-
-  sound.begin();
-
-  // مسح الشبكات المتاحة
+// ================================================
+//  اتصال WiFi مع فحص الشبكات
+// ================================================
+void connectWiFi() {
   WiFi.mode(WIFI_STA);
-  WiFi.disconnect();
-  delay(100);
-  Serial.println("\n[wifi] scanning networks...");
+  WiFi.disconnect(); delay(200);
+
+  // فحص الشبكات المتاحة
+  Serial.println("[wifi] scanning...");
   int n = WiFi.scanNetworks();
-  if (n == 0) {
-    Serial.println("[wifi] no networks found!");
-  } else {
-    Serial.printf("[wifi] found %d networks:\n", n);
-    for (int i = 0; i < n; i++) {
-      Serial.printf("  %d: \"%s\" (%d dBm) %s\n", i + 1,
-        WiFi.SSID(i).c_str(), WiFi.RSSI(i),
-        WiFi.encryptionType(i) == WIFI_AUTH_OPEN ? "OPEN" : "SECURED");
-    }
+  bool found = false;
+  for (int i=0; i<n; i++) {
+    String ssid = WiFi.SSID(i);
+    Serial.printf("  → \"%s\" (%d dBm)\n", ssid.c_str(), WiFi.RSSI(i));
+    if (ssid == String(WIFI_SSID)) found = true;
   }
-  Serial.printf("[wifi] connecting to: \"%s\"\n", WIFI_SSID);
 
-  WiFi.setAutoReconnect(true);
+  if (!found) {
+    Serial.printf("[wifi] ⚠️  شبكة \"%s\" غير موجودة!\n", WIFI_SSID);
+  }
+
+  Serial.printf("[wifi] connecting to \"%s\"...\n", WIFI_SSID);
   WiFi.begin(WIFI_SSID, WIFI_PASSWORD);
-  Serial.print("[wifi] connecting");
-  uint32_t t0 = millis();
-  while (WiFi.status() != WL_CONNECTED && millis() - t0 < 30000) {
-    delay(500);
-    Serial.print('.');
+  uint32_t t = millis();
+  while (WiFi.status()!=WL_CONNECTED && millis()-t<20000) {
+    delay(500); Serial.print('.');
   }
-  if (WiFi.status() == WL_CONNECTED) {
-    Serial.printf("\n[wifi] connected ip=%s\n", WiFi.localIP().toString().c_str());
+  if (WiFi.status()==WL_CONNECTED) {
+    Serial.printf("\n[wifi] ✅ connected — ip=%s\n", WiFi.localIP().toString().c_str());
   } else {
-    Serial.println("\n[wifi] failed — retrying in loop");
+    Serial.printf("\n[wifi] ❌ failed (check SSID/password)\n");
   }
-
-  // اتصال Socket.io
-  String path = String("/socket.io/?EIO=4&transport=websocket&deviceId=")
-              + DEVICE_ID + "&token=" + DEVICE_TOKEN;
-  socketIO.begin(SERVER_HOST, SERVER_PORT, path.c_str());
-  socketIO.onEvent(onSocketEvent);
 }
 
-// ============================================
-//   🔁 Loop
-// ============================================
-void loop() {
-  if (WiFi.status() != WL_CONNECTED) {
-    Serial.println("[wifi] reconnecting...");
-    WiFi.reconnect();
-    delay(RECONNECT_DELAY_MS);
-    return;
+// ================================================
+//  Setup & Loop
+// ================================================
+uint32_t lastHB = 0;
+
+void setup() {
+  Serial.begin(115200); delay(300);
+  Serial.println("\n\n=============================");
+  Serial.printf("  ESP32 Civil Alert v1.1.0\n");
+  Serial.println("=============================");
+
+  pinMode(PIN_BUZZER, OUTPUT); digitalWrite(PIN_BUZZER, LOW);
+  pinMode(PIN_LED,    OUTPUT); digitalWrite(PIN_LED,    LOW);
+
+  connectWiFi();
+
+  if (WiFi.status()==WL_CONNECTED) {
+    String path = String("/socket.io/?EIO=4&transport=websocket&deviceId=")
+                + DEVICE_ID + "&token=" + DEVICE_TOKEN;
+    socketIO.begin(SERVER_HOST, SERVER_PORT, path.c_str());
+    socketIO.onEvent(onSocket);
+    Serial.printf("[ws] connecting to %s:%d\n", SERVER_HOST, SERVER_PORT);
   }
+}
 
+void loop() {
+  if (WiFi.status()!=WL_CONNECTED) { connectWiFi(); return; }
   socketIO.loop();
-  sound.loop();
+  alertLoop();
 
-  if (millis() - lastHeartbeat > HEARTBEAT_INTERVAL_MS) {
-    lastHeartbeat = millis();
-    JsonDocument hb;
-    hb["deviceId"] = DEVICE_ID;
-    hb["rssi"]     = WiFi.RSSI();
-    hb["uptime"]   = millis() / 1000;
-    hb["fw"]       = FIRMWARE_VERSION;
-    sendJson("heartbeat", hb);
+  if (millis()-lastHB > 10000) {
+    lastHB = millis();
+    if (wsConnected) {
+      JsonDocument hb;
+      hb["deviceId"]=DEVICE_ID; hb["rssi"]=WiFi.RSSI();
+      hb["uptime"]=millis()/1000; hb["fw"]="1.1.0";
+      sendEvent("heartbeat", hb);
+    }
   }
 }
