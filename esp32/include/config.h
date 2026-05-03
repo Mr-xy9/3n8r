@@ -25,7 +25,7 @@
 #define DEVICE_ID       "esp32-001"
 #endif
 #ifndef DEVICE_TOKEN
-#define DEVICE_TOKEN    "set-during-provisioning"
+#define DEVICE_TOKEN    "c5b7bedbe3015d44b9203858f2623681f83fafb08a661748"
 #endif
 
 #define FIRMWARE_VERSION "1.1.0"

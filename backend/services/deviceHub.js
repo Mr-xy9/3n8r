@@ -17,13 +17,33 @@ class DeviceHub {
   _wire() {
     const ns = this.io.of('/devices');
     ns.use(async (socket, next) => {
-      // مصادقة كل جهاز عبر deviceId + token
-      const { deviceId, token } = socket.handshake.auth || {};
+      // Accept credentials from handshake.auth (Socket.io) or query params (ESP32 WebSocket)
+      const auth = socket.handshake.auth || {};
+      const query = socket.handshake.query || {};
+      const deviceId = auth.deviceId || query.deviceId;
+      const token    = auth.token    || query.token;
+
       if (!deviceId || !token) return next(new Error('missing credentials'));
-      const device = await Device.findOne({ deviceId });
-      if (!device || !device.enabled) return next(new Error('unknown device'));
-      const ok = await bcrypt.compare(token, device.deviceToken);
-      if (!ok) return next(new Error('invalid token'));
+
+      let device = await Device.findOne({ deviceId });
+
+      if (!device) {
+        // Auto-register on first connection
+        const deviceToken = await bcrypt.hash(token, 10);
+        device = await Device.create({
+          deviceId,
+          name: deviceId,
+          location: '',
+          deviceToken,
+          enabled: true,
+        });
+        console.log(`[hub] auto-registered device: ${deviceId}`);
+      } else {
+        if (!device.enabled) return next(new Error('device disabled'));
+        const ok = await bcrypt.compare(token, device.deviceToken);
+        if (!ok) return next(new Error('invalid token'));
+      }
+
       socket.data.deviceId = deviceId;
       socket.data.device = device;
       next();
