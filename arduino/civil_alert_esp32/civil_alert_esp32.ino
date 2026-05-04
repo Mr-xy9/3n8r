@@ -108,7 +108,7 @@ void onSocket(socketIOmessageType_t type, uint8_t* payload, size_t length) {
       wsConnected = true;
       Serial.println("[ws] ✅ connected");
       digitalWrite(PIN_LED, HIGH);
-      socketIO.send(sIOtype_CONNECT, "/devices");
+      // Server uses root namespace for devices — no manual namespace join
       { JsonDocument h; h["type"]="REGISTER"; h["deviceId"]=DEVICE_ID; h["fw"]="1.1.0"; sendEvent("message",h); }
       break;
 

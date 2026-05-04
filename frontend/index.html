@@ -3,49 +3,17 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>تسجيل الدخول — نظام التنبيهات المدنية | الدفاع المدني السعودي</title>
-  <meta name="description" content="بوابة الدخول الرسمية لنظام التنبيهات المدنية — وزارة الداخلية، المديرية العامة للدفاع المدني" />
+  <title>نظام التنبيهات المدنية — تسجيل الدخول</title>
   <link rel="stylesheet" href="styles.css" />
 </head>
 <body class="login-bg">
 
-  <!-- الشريط الرسمي العلوي -->
-  <div class="official-strip">
-    <div class="left">
-      <span>المملكة العربية السعودية</span>
-      <span class="dot"></span>
-      <span class="lang">KINGDOM OF SAUDI ARABIA</span>
-    </div>
-    <div class="right">
-      <span class="lang">OFFICIAL GOVERNMENT PORTAL</span>
-      <span class="dot"></span>
-      <span>بوابة حكومية رسمية</span>
-    </div>
-  </div>
-
-  <!-- شريط الهوية الحكومية -->
+  <!-- شريط الهوية الحكومية | Government identity bar -->
   <div class="gov-bar">
-    <div class="gov-identity">
-      <div class="gov-emblem" aria-hidden="true">
-        <svg viewBox="0 0 64 64" fill="currentColor">
-          <path d="M32 6 L34 10 L38 8 L36 13 L40 14 L36 17 L38 22 L33 19 L32 26 L31 19 L26 22 L28 17 L24 14 L28 13 L26 8 L30 10 Z"/>
-          <path d="M16 50 L48 50 L46 56 L18 56 Z" opacity="0.85"/>
-          <path d="M14 48 L20 30 L22 32 L18 48 Z M50 48 L44 30 L42 32 L46 48 Z"/>
-          <circle cx="32" cy="32" r="3"/>
-          <path d="M32 35 L32 48" stroke="currentColor" stroke-width="1.5" fill="none"/>
-        </svg>
-      </div>
-      <div class="gov-text">
-        <div class="ar">وزارة الداخلية · المديرية العامة للدفاع المدني</div>
-        <div class="en">Ministry of Interior · General Directorate of Civil Defense</div>
-      </div>
-    </div>
-    <div class="gov-meta">
-      <div class="item">
-        <span>🔒</span>
-        <span><strong>اتصال آمن</strong></span>
-      </div>
-    </div>
+    <span class="flag" aria-hidden="true">🇸🇦</span>
+    <strong>المملكة العربية السعودية</strong>
+    <span class="sep">—</span>
+    <span class="desc">وزارة الداخلية · المديرية العامة للدفاع المدني</span>
   </div>
 
   <main class="login-wrap">
@@ -53,16 +21,10 @@
       <div class="accent" aria-hidden="true"></div>
       <div class="body">
 
-        <div class="crest" aria-hidden="true">
-          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round">
-            <path d="M12 2 L4 5 V11 C4 16 7.5 20 12 22 C16.5 20 20 16 20 11 V5 Z"/>
-            <path d="M9 12 L11 14 L15 10"/>
-          </svg>
-        </div>
+        <div class="crest" aria-hidden="true">🛡️</div>
 
         <h1 id="login-title">نظام التنبيهات المدنية</h1>
         <p class="subtitle">Civil Defense Alert System</p>
-        <p class="ministry-line">وزارة الداخلية · المديرية العامة للدفاع المدني</p>
 
         <form id="login-form" method="post" action="javascript:void(0);" autocomplete="on" novalidate>
           <label>
@@ -73,7 +35,7 @@
             كلمة المرور
             <input id="password" name="password" type="password" required autocomplete="current-password" placeholder="••••••••" />
           </label>
-          <button type="submit" class="btn btn-primary" id="login-btn">دخول النظام</button>
+          <button type="submit" class="btn btn-primary" id="login-btn">تسجيل الدخول</button>
           <p class="error" id="login-error" hidden></p>
           <p class="help">المستخدم الافتراضي: <code>admin</code> · كلمة المرور: <code>admin123</code></p>
         </form>
@@ -81,18 +43,10 @@
     </section>
   </main>
 
-  <!-- التذييل الرسمي -->
+  <!-- التذييل الرسمي | Official footer -->
   <footer class="gov-footer">
-    <div class="row">
-      <span>© <strong>المملكة العربية السعودية</strong></span>
-      <span class="sep">·</span>
-      <span>وزارة الداخلية — المديرية العامة للدفاع المدني</span>
-      <span class="sep">·</span>
-      <span class="secured">🔒 نظام آمن للاستخدام الرسمي</span>
-    </div>
-    <div style="margin-top: 0.5rem; opacity: 0.65;">
-      جميع الحقوق محفوظة · الدخول مخصّص للموظفين المُخوّلين فقط
-    </div>
+    <div>© <strong>المملكة العربية السعودية</strong> — وزارة الداخلية · الدفاع المدني</div>
+    <div>جميع الحقوق محفوظة · نظام آمن — الدخول مخصّص للموظفين المُخوّلين</div>
   </footer>
 
   <script src="app.js"></script>
