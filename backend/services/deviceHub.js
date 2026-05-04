@@ -17,36 +17,51 @@ class DeviceHub {
   _wire() {
     const ns = this.io.of('/devices');
     ns.use(async (socket, next) => {
-      // Accept credentials from handshake.auth (Socket.io) or query params (ESP32 WebSocket)
-      const auth = socket.handshake.auth || {};
-      const query = socket.handshake.query || {};
-      const deviceId = auth.deviceId || query.deviceId;
-      const token    = auth.token    || query.token;
+      try {
+        const auth = socket.handshake.auth || {};
+        const query = socket.handshake.query || {};
+        const deviceId = auth.deviceId || query.deviceId;
+        const token    = auth.token    || query.token;
 
-      if (!deviceId || !token) return next(new Error('missing credentials'));
+        console.log(`[hub] handshake from ${socket.handshake.address} deviceId=${deviceId} token=${token ? token.slice(0, 8) + '...' : 'NONE'}`);
 
-      let device = await Device.findOne({ deviceId });
+        if (!deviceId || !token) {
+          console.log('[hub] ❌ missing credentials');
+          return next(new Error('missing credentials'));
+        }
 
-      if (!device) {
-        // Auto-register on first connection
-        const deviceToken = await bcrypt.hash(token, 10);
-        device = await Device.create({
-          deviceId,
-          name: deviceId,
-          location: '',
-          deviceToken,
-          enabled: true,
-        });
-        console.log(`[hub] auto-registered device: ${deviceId}`);
-      } else {
-        if (!device.enabled) return next(new Error('device disabled'));
-        const ok = await bcrypt.compare(token, device.deviceToken);
-        if (!ok) return next(new Error('invalid token'));
+        let device = await Device.findOne({ deviceId });
+
+        if (!device) {
+          const deviceToken = await bcrypt.hash(token, 10);
+          device = await Device.create({
+            deviceId,
+            name: deviceId,
+            location: '',
+            deviceToken,
+            enabled: true,
+          });
+          console.log(`[hub] ✅ auto-registered device: ${deviceId}`);
+        } else {
+          if (!device.enabled) {
+            console.log(`[hub] ❌ device disabled: ${deviceId}`);
+            return next(new Error('device disabled'));
+          }
+          const ok = await bcrypt.compare(token, device.deviceToken);
+          if (!ok) {
+            console.log(`[hub] ❌ invalid token for: ${deviceId}`);
+            return next(new Error('invalid token'));
+          }
+          console.log(`[hub] ✅ authenticated: ${deviceId}`);
+        }
+
+        socket.data.deviceId = deviceId;
+        socket.data.device = device;
+        next();
+      } catch (err) {
+        console.error('[hub] middleware error:', err.message);
+        next(new Error('server error'));
       }
-
-      socket.data.deviceId = deviceId;
-      socket.data.device = device;
-      next();
     });
 
     ns.on('connection', (socket) => this._onConnect(socket));

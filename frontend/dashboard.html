@@ -3,44 +3,87 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>لوحة التحكم — نظام التنبيهات المدنية</title>
+  <title>لوحة التحكم — نظام التنبيهات المدنية | الدفاع المدني السعودي</title>
+  <meta name="description" content="نظام التنبيهات المدنية — وزارة الداخلية، المديرية العامة للدفاع المدني، المملكة العربية السعودية" />
   <link rel="stylesheet" href="styles.css" />
   <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" crossorigin="" />
   <script src="https://cdn.socket.io/4.7.5/socket.io.min.js" crossorigin="anonymous"></script>
 </head>
 <body>
 
+  <!-- الشريط الرسمي العلوي -->
+  <div class="official-strip">
+    <div class="left">
+      <span>المملكة العربية السعودية</span>
+      <span class="dot"></span>
+      <span class="lang">KINGDOM OF SAUDI ARABIA</span>
+    </div>
+    <div class="right">
+      <span class="lang">OFFICIAL GOVERNMENT PORTAL</span>
+      <span class="dot"></span>
+      <span>بوابة حكومية رسمية</span>
+    </div>
+  </div>
+
   <!-- شريط الهوية الحكومية -->
   <div class="gov-bar">
-    <span class="flag" aria-hidden="true">🇸🇦</span>
-    <strong>المملكة العربية السعودية</strong>
-    <span class="sep">—</span>
-    <span class="desc">وزارة الداخلية · المديرية العامة للدفاع المدني</span>
+    <div class="gov-identity">
+      <div class="gov-emblem" aria-hidden="true">
+        <!-- شعار رمزي: نخلة وسيفان -->
+        <svg viewBox="0 0 64 64" fill="currentColor">
+          <path d="M32 6 L34 10 L38 8 L36 13 L40 14 L36 17 L38 22 L33 19 L32 26 L31 19 L26 22 L28 17 L24 14 L28 13 L26 8 L30 10 Z"/>
+          <path d="M16 50 L48 50 L46 56 L18 56 Z" opacity="0.85"/>
+          <path d="M14 48 L20 30 L22 32 L18 48 Z M50 48 L44 30 L42 32 L46 48 Z"/>
+          <circle cx="32" cy="32" r="3"/>
+          <path d="M32 35 L32 48" stroke="currentColor" stroke-width="1.5" fill="none"/>
+        </svg>
+      </div>
+      <div class="gov-text">
+        <div class="ar">وزارة الداخلية · المديرية العامة للدفاع المدني</div>
+        <div class="en">Ministry of Interior · General Directorate of Civil Defense</div>
+      </div>
+    </div>
+    <div class="gov-meta">
+      <div class="item">
+        <span>📡</span>
+        <span>الحالة: <strong>تشغيلي</strong></span>
+      </div>
+      <div class="item">
+        <span>🔒</span>
+        <span><strong>قناة آمنة</strong></span>
+      </div>
+    </div>
   </div>
 
   <!-- الشريط العلوي -->
   <header class="topbar">
     <div class="brand">
-      <div class="crest-sm" aria-hidden="true">🛡️</div>
+      <div class="crest-sm" aria-hidden="true">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+          <path d="M12 2 L4 5 V11 C4 16 7.5 20 12 22 C16.5 20 20 16 20 11 V5 Z"/>
+          <path d="M9 12 L11 14 L15 10"/>
+        </svg>
+      </div>
       <div>
-        نظام التنبيهات المدنية
+        <div class="name">نظام التنبيهات المدنية</div>
         <small>Civil Defense Alert System</small>
       </div>
     </div>
     <div class="topbar-right">
+      <span class="clock" id="live-clock" aria-live="polite"></span>
       <span class="user" id="user-name"></span>
       <button class="btn btn-ghost btn-sm" id="btn-logout">تسجيل الخروج</button>
     </div>
   </header>
 
   <!-- التبويبات -->
-  <nav class="tabs" role="tablist">
-    <button class="tab active" data-tab="overview">نظرة عامة</button>
-    <button class="tab" data-tab="map">الخريطة</button>
-    <button class="tab" data-tab="trigger">إطلاق إنذار</button>
-    <button class="tab" data-tab="devices">الأجهزة</button>
-    <button class="tab" data-tab="history">السجل</button>
-    <button class="tab" data-tab="audit">سجل المراجعة</button>
+  <nav class="tabs" role="tablist" aria-label="أقسام النظام">
+    <button class="tab active" data-tab="overview" role="tab">نظرة عامة</button>
+    <button class="tab" data-tab="map" role="tab">الخريطة</button>
+    <button class="tab" data-tab="trigger" role="tab">إطلاق إنذار</button>
+    <button class="tab" data-tab="devices" role="tab">الأجهزة</button>
+    <button class="tab" data-tab="history" role="tab">السجل</button>
+    <button class="tab" data-tab="audit" role="tab">سجل المراجعة</button>
   </nav>
 
   <main class="container">
@@ -48,13 +91,14 @@
     <!-- نظرة عامة -->
     <section class="panel" data-panel="overview">
       <h2>الإحصائيات العامة</h2>
+      <p class="panel-subtitle">عرض موجز لحالة النظام، الأجهزة المتصلة، والتنبيهات المُطلَقة خلال الفترة الأخيرة.</p>
       <div class="cards" id="stats-cards"></div>
       <h3>الأجهزة المتصلة حالياً</h3>
       <div id="online-devices" class="grid"></div>
     </section>
 
     <!-- الخريطة -->
-    <section class="panel hidden" data-panel="map" style="padding:0;overflow:hidden;">
+    <section class="panel map-panel hidden" data-panel="map">
       <div class="map-toolbar">
         <span class="title">خريطة المساجد — مدينة الرياض</span>
         <div class="actions">
@@ -65,7 +109,7 @@
       <div id="mosque-map"></div>
 
       <!-- نموذج إضافة مسجد يدوي -->
-      <div id="mosque-form-panel" class="panel" style="border-radius:0;border-top:1px solid var(--border);box-shadow:none;display:none;">
+      <div id="mosque-form-panel" class="panel" style="display:none;">
         <h3>تسجيل مسجد في النظام</h3>
         <form id="mosque-form" class="form-grid">
           <label>اسم المسجد (عربي)<input id="mf-nameAr" required /></label>
@@ -86,7 +130,7 @@
     <!-- إطلاق إنذار -->
     <section class="panel danger-zone hidden" data-panel="trigger">
       <h2>إطلاق إنذار فوري</h2>
-      <p class="muted" style="margin-bottom:1rem;">إطلاق التنبيه يُرسَل فوراً إلى جميع الأجهزة المُتصلة. تأكّد من اختيار النوع والمدة قبل الإطلاق.</p>
+      <p class="panel-subtitle">⚠️ إطلاق التنبيه يُرسَل فوراً إلى جميع الأجهزة المُتصلة. هذا إجراء حسّاس — تأكّد من اختيار النوع والمدة قبل التنفيذ.</p>
       <form id="trigger-form" class="form-grid">
         <label>نوع الإنذار
           <select name="type" required>
@@ -116,6 +160,7 @@
     <!-- الأجهزة -->
     <section class="panel hidden" data-panel="devices">
       <h2>إدارة الأجهزة</h2>
+      <p class="panel-subtitle">تسجيل أجهزة ESP32 الجديدة، ومتابعة حالة الأجهزة المتصلة، وإجراء العمليات الإدارية.</p>
       <form id="device-form" class="form-inline">
         <input name="deviceId" placeholder="معرّف الجهاز (مثال: esp32-001)" required />
         <input name="name" placeholder="الاسم" />
@@ -144,6 +189,7 @@
     <!-- سجل التنبيهات -->
     <section class="panel hidden" data-panel="history">
       <h2>سجل التنبيهات</h2>
+      <p class="panel-subtitle">قائمة بجميع التنبيهات التي صدرت من النظام مع حالتها والأجهزة التي استجابت لها.</p>
       <div class="table-wrap">
         <table class="table">
           <thead>
@@ -163,6 +209,7 @@
     <!-- سجل المراجعة -->
     <section class="panel hidden" data-panel="audit">
       <h2>سجل عمليات النظام</h2>
+      <p class="panel-subtitle">سجل تدقيقي شامل لكل العمليات الإدارية والأمنية داخل النظام لأغراض المراجعة والمساءلة.</p>
       <div class="table-wrap">
         <table class="table">
           <thead>
@@ -182,9 +229,33 @@
   </main>
 
   <footer class="gov-footer">
-    <div>© <strong>المملكة العربية السعودية</strong> — وزارة الداخلية · الدفاع المدني</div>
-    <div>جميع الحقوق محفوظة · نظام آمن للاستخدام الرسمي</div>
+    <div class="row">
+      <span>© <strong>المملكة العربية السعودية</strong></span>
+      <span class="sep">·</span>
+      <span>وزارة الداخلية — المديرية العامة للدفاع المدني</span>
+      <span class="sep">·</span>
+      <span class="secured">🔒 نظام آمن للاستخدام الرسمي</span>
+    </div>
+    <div style="margin-top: 0.5rem; opacity: 0.65;">
+      جميع الحقوق محفوظة · الدخول مخصّص للموظفين المُخوّلين فقط
+    </div>
   </footer>
+
+  <script>
+    // ساعة حية في الشريط العلوي (عرض فقط — لا تأثير وظيفي)
+    (function () {
+      const el = document.getElementById('live-clock');
+      if (!el) return;
+      const tick = () => {
+        const now = new Date();
+        const t = now.toLocaleTimeString('ar-SA', { hour: '2-digit', minute: '2-digit' });
+        const d = now.toLocaleDateString('ar-SA-u-ca-islamic', { day: 'numeric', month: 'short' });
+        el.innerHTML = `<span>🕐</span><span>${d} — ${t}</span>`;
+      };
+      tick();
+      setInterval(tick, 30000);
+    })();
+  </script>
 
   <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js" crossorigin=""></script>
   <script src="app.js"></script>
