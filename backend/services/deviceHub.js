@@ -26,16 +26,14 @@ class DeviceHub {
       try {
         const auth = socket.handshake.auth || {};
         const query = socket.handshake.query || {};
-        const deviceId = auth.deviceId || query.deviceId;
+        const ip = socket.handshake.address || 'unknown';
+        const rawId = auth.deviceId || query.deviceId;
+        // If no deviceId provided, derive one from IP (local-network trust mode)
+        const deviceId = rawId || `ip-${ip.replace(/[^a-zA-Z0-9]/g, '-')}`;
 
-        console.log(`[hub] handshake from ${socket.handshake.address} deviceId=${deviceId}`);
+        console.log(`[hub] handshake from ${ip} deviceId=${deviceId}`);
 
-        if (!deviceId) {
-          console.log('[hub] ❌ missing deviceId');
-          return next(new Error('missing deviceId'));
-        }
-
-        // No token check — auto-create on first connect.
+        // No token check, no deviceId required — auto-create on first connect.
         let device = await Device.findOne({ deviceId });
         if (!device) {
           device = await Device.create({
