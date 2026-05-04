@@ -24,7 +24,7 @@ void onSocketEvent(socketIOmessageType_t type, uint8_t* payload, size_t length) 
 
     case sIOtype_CONNECT:
       Serial.println("[ws] connected");
-      socketIO.send(sIOtype_CONNECT, "/devices");
+      // Server uses root namespace for devices — no manual namespace join
       {
         JsonDocument hello;
         hello["type"]     = "REGISTER";

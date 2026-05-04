@@ -15,7 +15,13 @@ class DeviceHub {
   }
 
   _wire() {
-    const ns = this.io.of('/devices');
+    // Use root namespace `/` for ESP32 devices.
+    // Reason: links2004/WebSockets SocketIOclient (ESP32) doesn't reliably
+    // join sub-namespaces in Socket.IO v4 — events end up on the default
+    // namespace and CONNECT_ERROR on a sub-namespace tears the whole
+    // socket down. Dashboard uses its own `/dashboard` namespace, so they
+    // don't conflict.
+    const ns = this.io.of('/');
     ns.use(async (socket, next) => {
       try {
         const auth = socket.handshake.auth || {};
@@ -147,7 +153,7 @@ class DeviceHub {
   }
 
   broadcast(payload) {
-    this.io.of('/devices').emit('command', payload);
+    this.io.of('/').emit('command', payload);
   }
 
   disconnect(deviceId) {
