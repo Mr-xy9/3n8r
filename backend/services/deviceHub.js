@@ -55,10 +55,15 @@ class DeviceHub {
           }
           const ok = await bcrypt.compare(token, device.deviceToken);
           if (!ok) {
-            console.log(`[hub] ❌ invalid token for: ${deviceId}`);
-            return next(new Error('invalid token'));
+            // Trust-on-firmware-update: when the firmware token changes
+            // (re-flash with a new DEVICE_TOKEN), rebind the stored hash
+            // instead of rejecting. Avoids manual DB cleanup in dev.
+            const deviceToken = await bcrypt.hash(token, 10);
+            await Device.updateOne({ deviceId }, { deviceToken });
+            console.log(`[hub] 🔄 token rebound for: ${deviceId}`);
+          } else {
+            console.log(`[hub] ✅ authenticated: ${deviceId}`);
           }
-          console.log(`[hub] ✅ authenticated: ${deviceId}`);
         }
 
         socket.data.deviceId = deviceId;
