@@ -27,43 +27,30 @@ class DeviceHub {
         const auth = socket.handshake.auth || {};
         const query = socket.handshake.query || {};
         const deviceId = auth.deviceId || query.deviceId;
-        const token    = auth.token    || query.token;
 
-        console.log(`[hub] handshake from ${socket.handshake.address} deviceId=${deviceId} token=${token ? token.slice(0, 8) + '...' : 'NONE'}`);
+        console.log(`[hub] handshake from ${socket.handshake.address} deviceId=${deviceId}`);
 
-        if (!deviceId || !token) {
-          console.log('[hub] ❌ missing credentials');
-          return next(new Error('missing credentials'));
+        if (!deviceId) {
+          console.log('[hub] ❌ missing deviceId');
+          return next(new Error('missing deviceId'));
         }
 
+        // No token check — auto-create on first connect.
         let device = await Device.findOne({ deviceId });
-
         if (!device) {
-          const deviceToken = await bcrypt.hash(token, 10);
           device = await Device.create({
             deviceId,
             name: deviceId,
             location: '',
-            deviceToken,
+            deviceToken: 'open',
             enabled: true,
           });
           console.log(`[hub] ✅ auto-registered device: ${deviceId}`);
+        } else if (!device.enabled) {
+          console.log(`[hub] ❌ device disabled: ${deviceId}`);
+          return next(new Error('device disabled'));
         } else {
-          if (!device.enabled) {
-            console.log(`[hub] ❌ device disabled: ${deviceId}`);
-            return next(new Error('device disabled'));
-          }
-          const ok = await bcrypt.compare(token, device.deviceToken);
-          if (!ok) {
-            // Trust-on-firmware-update: when the firmware token changes
-            // (re-flash with a new DEVICE_TOKEN), rebind the stored hash
-            // instead of rejecting. Avoids manual DB cleanup in dev.
-            const deviceToken = await bcrypt.hash(token, 10);
-            await Device.updateOne({ deviceId }, { deviceToken });
-            console.log(`[hub] 🔄 token rebound for: ${deviceId}`);
-          } else {
-            console.log(`[hub] ✅ authenticated: ${deviceId}`);
-          }
+          console.log(`[hub] ✅ connected: ${deviceId}`);
         }
 
         socket.data.deviceId = deviceId;
