@@ -91,6 +91,15 @@ async function bootstrap() {
     allowEIO3: false,
     maxHttpBufferSize: 1e6,
   });
+  // طباعة أخطاء engine.io على مستوى الـ handshake (قبل middleware النطاق)
+  io.engine.on('connection_error', (err) => {
+    console.error('[io] connection_error:',
+      'code=', err.code,
+      'message=', err.message,
+      'context=', err.context && JSON.stringify(err.context).slice(0, 200)
+    );
+  });
+
   deviceHub.init(io);
   dashboardHub.init(io);
 

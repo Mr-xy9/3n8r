@@ -81,41 +81,63 @@ class DeviceHub {
   async _onConnect(socket) {
     const { deviceId } = socket.data;
     this.devices.set(deviceId, socket);
-    await Device.updateOne(
-      { deviceId },
-      {
-        online: true,
-        lastSeenAt: new Date(),
-        ipAddress: socket.handshake.address,
-      }
-    );
-    this._broadcastStatus(deviceId, true);
-    await audit({
-      actor: deviceId,
-      actorType: 'device',
-      action: 'device.connect',
-      resource: deviceId,
-      ip: socket.handshake.address,
-    });
 
+    // سجّل المستمعات أولاً قبل أي await، حتى لا نفقد أحداثاً تصل
+    // أثناء انتظار MongoDB، ولا يضيع حدث disconnect قبل ربط handler.
     socket.on('message', (msg) => this._onMessage(deviceId, msg));
     socket.on('heartbeat', (data) => this._onHeartbeat(deviceId, data));
     socket.on('ack', (data) => this._onAck(deviceId, data));
 
-    socket.on('disconnect', async () => {
-      this.devices.delete(deviceId);
+    socket.on('disconnect', async (reason) => {
+      console.log(`[hub] ⚠️  device ${deviceId} disconnected — reason: ${reason}`);
+      // لا نمسح إلا إذا كانت socket الموجودة في الخريطة هي نفسها المُنفصلة
+      if (this.devices.get(deviceId) === socket) {
+        this.devices.delete(deviceId);
+      }
+      try {
+        await Device.updateOne(
+          { deviceId },
+          { online: false, lastSeenAt: new Date() }
+        );
+        this._broadcastStatus(deviceId, false);
+        await audit({
+          actor: deviceId,
+          actorType: 'device',
+          action: 'device.disconnect',
+          resource: deviceId,
+          details: { reason },
+        });
+      } catch (e) {
+        console.error('[hub] disconnect handler error:', e.message);
+      }
+    });
+
+    socket.on('error', (err) => {
+      console.error(`[hub] socket error for ${deviceId}:`, err && err.message);
+    });
+
+    console.log(`[hub] 🔌 device ${deviceId} CONNECTED (transport=${socket.conn.transport.name})`);
+
+    try {
       await Device.updateOne(
         { deviceId },
-        { online: false, lastSeenAt: new Date() }
+        {
+          online: true,
+          lastSeenAt: new Date(),
+          ipAddress: socket.handshake.address,
+        }
       );
-      this._broadcastStatus(deviceId, false);
+      this._broadcastStatus(deviceId, true);
       await audit({
         actor: deviceId,
         actorType: 'device',
-        action: 'device.disconnect',
+        action: 'device.connect',
         resource: deviceId,
+        ip: socket.handshake.address,
       });
-    });
+    } catch (e) {
+      console.error('[hub] connect handler error:', e.message);
+    }
   }
 
   async _onHeartbeat(deviceId, data = {}) {
