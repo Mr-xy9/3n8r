@@ -22,9 +22,9 @@
 //  ⚙️  الإعدادات — عدّل هنا فقط
 // ================================================
 
-const char* WIFI_SSID     = "iPhone";
-const char* WIFI_PASSWORD = "i1i2i3i4";
-const char* SERVER_HOST   = "172.20.10.2";
+const char* WIFI_SSID     = "Ali";
+const char* WIFI_PASSWORD = "12345678";
+const char* SERVER_HOST   = "172.20.10.3";
 const int   SERVER_PORT   = 3000;
 const char* DEVICE_ID     = "esp32-001";
 const char* DEVICE_TOKEN  = "c5b7bedbe3015d44b9203858f2623681f83fafb08a661748";
