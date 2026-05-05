@@ -63,7 +63,11 @@ async function bootstrap() {
     },
     crossOriginEmbedderPolicy: false,
   }));
-  app.use(cors({ origin: config.cors.origin, credentials: true }));
+  // CORS: نقبل أي أصل عند ضبط CORS_ORIGIN=* (مفيد أثناء التطوير وأجهزة ESP).
+  const corsOrigin = config.cors.origin.length === 1 && config.cors.origin[0] === '*'
+    ? true
+    : config.cors.origin;
+  app.use(cors({ origin: corsOrigin, credentials: true }));
   app.use(express.json({ limit: '1mb' }));
   app.use(morgan('combined'));
 
@@ -78,7 +82,14 @@ async function bootstrap() {
 
   const server = http.createServer(app);
   const io = new Server(server, {
-    cors: { origin: config.cors.origin, credentials: true },
+    cors: { origin: corsOrigin, credentials: true },
+    // مهلٌ أطول لـ ESP32 على شبكات NAT/خلوي ضعيفة لتفادي
+    // إغلاق الاتصال قبل وصول pong وتسبّب حلقة connect/disconnect.
+    pingInterval: 25_000,
+    pingTimeout:  60_000,
+    transports: ['websocket', 'polling'],
+    allowEIO3: false,
+    maxHttpBufferSize: 1e6,
   });
   deviceHub.init(io);
   dashboardHub.init(io);

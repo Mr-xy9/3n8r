@@ -10,6 +10,7 @@ SocketIOclient socketIO;
 SoundController sound;
 
 uint32_t lastHeartbeat = 0;
+bool wsConnected = false;
 
 void sendJson(const char* event, JsonDocument& doc) {
   String data;
@@ -23,6 +24,7 @@ void onSocketEvent(socketIOmessageType_t type, uint8_t* payload, size_t length) 
   switch (type) {
 
     case sIOtype_CONNECT:
+      wsConnected = true;
       Serial.println("[ws] connected");
       // Server uses root namespace for devices — no manual namespace join
       {
@@ -80,6 +82,7 @@ void onSocketEvent(socketIOmessageType_t type, uint8_t* payload, size_t length) 
     }
 
     case sIOtype_DISCONNECT:
+      wsConnected = false;
       Serial.println("[ws] disconnected");
       break;
 
@@ -111,10 +114,16 @@ void setup() {
     Serial.println("\n[wifi] failed — retrying in loop");
   }
 
-  // اتصال Socket.io
-  String auth = String("?deviceId=") + DEVICE_ID + "&token=" + DEVICE_TOKEN;
-  socketIO.begin(SERVER_HOST, SERVER_PORT, ("/socket.io/?EIO=4&transport=websocket" + auth).c_str());
+  // اتصال Socket.io — ملاحظة: الفاصل بين معاملات URL هو & وليس ?
+  // كانت هناك علامة ? مكررة سابقاً تمنع وصول deviceId/token إلى الخادم،
+  // مما يؤدي إلى رفض الاتصال وتكرار حلقة connect/disconnect.
+  String path = String("/socket.io/?EIO=4&transport=websocket")
+              + "&deviceId=" + DEVICE_ID
+              + "&token="    + DEVICE_TOKEN;
+  socketIO.begin(SERVER_HOST, SERVER_PORT, path.c_str());
   socketIO.onEvent(onSocketEvent);
+  socketIO.setReconnectInterval(RECONNECT_DELAY_MS);
+  Serial.printf("[ws] connecting to %s:%d%s\n", SERVER_HOST, SERVER_PORT, path.c_str());
 }
 
 void loop() {
@@ -129,8 +138,8 @@ void loop() {
   socketIO.loop();
   sound.loop();
 
-  // Heartbeat كل 10 ثوان
-  if (millis() - lastHeartbeat > HEARTBEAT_INTERVAL_MS) {
+  // Heartbeat كل 10 ثوان — فقط عند وجود اتصال WebSocket فعّال
+  if (wsConnected && millis() - lastHeartbeat > HEARTBEAT_INTERVAL_MS) {
     lastHeartbeat = millis();
     JsonDocument hb;
     hb["deviceId"] = DEVICE_ID;

@@ -20,20 +20,51 @@ docs/       التوثيق المعماري
 
 ### 1) الخادم
 ```bash
-cd backend هنا خذ المسار حق ملف الباك اند 
+cd backend
+cp .env.example .env       # عدّل القيم حسب بيئتك
 npm install
 npm start
 ```
 - الافتراضي يفتح المنفذ 3000 ويُنشئ مستخدم `admin` بكلمة مرور `admin123`
   (غيّرها فوراً عبر `ADMIN_DEFAULT_PASSWORD`).
+- يجب أن يكون **MongoDB** يعمل محلياً (أو ضع رابط Atlas في `MONGO_URI`).
 
 ### 2) الواجهة
-افتح `http://localhost:3000/index.html`.
+افتح `http://localhost:3000/index.html` ثم سجّل الدخول
+(`admin` / `admin123`).
 
 ### 3) ESP32
-- سجّل الجهاز من لوحة التحكم → احصل على `deviceToken` (يُعرض مرّة واحدة).
+- سجّل الجهاز من تبويب «الأجهزة» في لوحة التحكم → ستظهر قيمة `deviceToken`
+  مرة واحدة فقط، انسخها فوراً.
 - حدّث `esp32/platformio.ini` بقيم `DEVICE_ID` / `DEVICE_TOKEN` /
-  `SERVER_HOST` ثم: `pio run -t upload`.
+  `SERVER_HOST` (عنوان IP المحلي للخادم وليس `localhost`)، ثم:
+  ```bash
+  pio run -t upload && pio device monitor
+  ```
+- بدون PlatformIO يمكن استخدام `arduino/civil_alert_esp32/civil_alert_esp32.ino`
+  بعد تعديل ثوابت الشبكة وقيم `DEVICE_ID` / `DEVICE_TOKEN` في أعلى الملف.
+
+## استكشاف الأعطال | Troubleshooting
+
+- **ESP يدخل في حلقة connect/disconnect**:
+  - تأكّد أن الجهاز والخادم على نفس الشبكة (LAN).
+  - استخدم عنوان IP حقيقي (`192.168.x.x` أو `172.20.10.x` لنقطة اتصال iPhone)،
+    لا تستخدم `localhost` في الـ firmware.
+  - تم إصلاح بناء URL لـ Socket.IO (كانت توجد علامة `?` مكررة سابقاً تمنع
+    وصول `deviceId`/`token` إلى الخادم).
+  - مكتبة `links2004/WebSockets` رُفعت إلى `^2.6.1` للتوافق الكامل مع
+    Socket.IO v4 (EIO=4).
+  - ضُبطت مهل ping على الخادم: `pingInterval=25s`, `pingTimeout=60s`
+    لتحمّل شبكات الـ NAT والاتصالات الضعيفة.
+
+- **«تعذّر الاتصال بالخادم» في الواجهة**:
+  - تأكّد أن خدمة Node.js تعمل وأن MongoDB متّصل.
+  - اضبط `CORS_ORIGIN=*` في `.env` أثناء التطوير.
+
+- **MongoDB لا يعمل**:
+  - Linux/macOS: `sudo systemctl start mongod` أو `brew services start mongodb-community`.
+  - Windows: شغّل خدمة MongoDB من Services أو `mongod` يدوياً.
+  - أو استخدم MongoDB Atlas وضع رابط الاتصال في `MONGO_URI`.
 
 ## أنواع التنبيهات
 `AIR_RAID`, `GENERAL`, `PARTIAL`, `ALL_CLEAR`, `TEST`, `CUSTOM`.
